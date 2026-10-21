@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}Tickets by Company — Orchard Core Ops{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+  <aside class="sidebar glass-card">
+    <div class="sidebar-logo">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+      <span class="logo-text">Orchard<span class="logo-accent"> Core Ops</span></span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('dashboard.index') }}" class="sb-link"><i class="fa-solid fa-gauge-high" style="margin-right:8px;"></i>Dashboard</a>
+      <a href="{{ url_for('tickets.list_tickets') }}" class="sb-link"><i class="fa-solid fa-ticket" style="margin-right:8px;"></i>Tickets</a>
+      <a href="{{ url_for('tickets.create_ticket') }}" class="sb-link"><i class="fa-solid fa-plus" style="margin-right:8px;"></i>New Ticket</a>
+      <a href="{{ url_for('transactions.index') }}" class="sb-link active"><i class="fa-solid fa-building-columns" style="margin-right:8px;"></i>Tickets by Company</a>
+      {% if session.get('rol') in ('admin', 'tecnico') %}
+      <a href="{{ url_for('reports.index') }}" class="sb-link"><i class="fa-solid fa-chart-line" style="margin-right:8px;"></i>Reports</a>
+      {% endif %}
+      {% if session.get('rol') == 'admin' %}
+      <a href="{{ url_for('auth.register') }}" class="sb-link"><i class="fa-solid fa-user-plus" style="margin-right:8px;"></i>Create Account</a>
+      {% endif %}
+    </nav>
+    <div class="sidebar-user">
+      <div class="su-avatar">{{ session.get('username','U')[0].upper() }}</div>
+      <div class="su-info">
+        <span class="su-name">{{ session.get('username') }}</span>
+        <span class="su-role">{{ session.get('rol','')|role_label }}</span>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="su-logout" title="Log out"><i class="fa-solid fa-right-from-bracket"></i></a>
+    </div>
+  </aside>
+
+  <div class="dashboard-main">
+    <div class="dash-topbar">
+      <div>
+        <h1 class="dash-title">Tickets by Company</h1>
+        <p class="dash-sub">Select the transaction type and review the recorded reports.</p>
+      </div>
+      <a href="{{ url_for('transactions.nuevo', tipo=tipo) }}" class="btn-primary">
+        <i class="fa-solid fa-plus"></i> New Report
+      </a>
+    </div>
+
+    <!-- SELECTOR TIPO -->
+    <div class="dash-block">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        {% for key, label in tipos.items() %}
+        <a href="{{ url_for('transactions.index', tipo=key) }}"
+           class="btn-{% if tipo == key %}primary{% else %}ghost{% endif %}"
+           style="padding:10px 18px;font-size:0.85rem;">
+          {% if key == 'cus_s' %}<i class="fa-solid fa-headset"></i>
+          {% elif key == 'tech_s' %}<i class="fa-solid fa-screwdriver-wrench"></i>
+          {% elif key == 'mark' %}<i class="fa-solid fa-bullhorn"></i>
+          {% elif key == 'finance' %}<i class="fa-solid fa-coins"></i>{% endif %}
+          {{ label }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- KPIs DEL TIPO SELECCIONADO -->
+    <div class="dash-block">
+      <h2 class="block-title">KPIs — {{ tipos[tipo] }}</h2>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        {% for kpi in kpis %}
+        <div class="glass-card" style="padding:16px 22px;display:flex;flex-direction:column;gap:4px;min-width:180px;">
+          <span style="font-family:var(--font-head);font-weight:700;font-size:0.95rem;color:var(--green-glow);">{{ kpi.key }}</span>
+          <span style="font-size:0.78rem;color:var(--silver);">{{ kpi.label }}</span>
+          <span style="font-size:0.82rem;color:var(--white);font-weight:600;">Target: {{ kpi.target }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- DATA ANALYTICS — interactivo, calculado en vivo con los reportes registrados -->
+    {% if data_analytics %}
+    <div class="dash-block">
+      <h2 class="block-title">DATA ANALYTICS</h2>
+      {% set rating_color = {
+        'low': '#f87171', 'good': '#facc15', 'favorable': '#38bdf8',
+        'strong': 'var(--green-glow)', 'excellent': 'var(--green-glow)',
+        'world-class': '#c084fc', none: 'var(--silver-dim)'
+      } %}
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        {% for emp in data_analytics %}
+        <div class="glass-card" style="padding:20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <i class="fa-solid fa-chart-simple" style="color:var(--green-glow);"></i>
+            <span style="font-family:var(--font-head);font-weight:700;font-size:0.95rem;">{{ emp.empresa }}</span>
+            <span style="font-size:0.75rem;color:var(--silver-dim);">({{ emp.total_reportes }} cases recorded)</span>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            {% for kpi in emp.kpis %}
+            {% set d = emp.data[kpi.key] %}
+            <div style="flex:1;min-width:150px;padding:14px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                <span style="font-family:var(--font-head);font-weight:700;font-size:0.9rem;color:var(--green-glow);">{{ kpi.key }}</span>
+                <span style="font-size:1.05rem;font-weight:700;color:{{ rating_color.get(d.css) }};">{{ d.display }}</span>
+              </div>
+              <div style="font-size:0.7rem;color:var(--silver);margin-top:2px;">{{ kpi.label }}</div>
+              <div style="font-size:0.68rem;color:var(--silver-dim);">{{ kpi.desc }}</div>
+              {% if d.rating %}
+              <div style="margin-top:6px;display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.65rem;font-weight:700;letter-spacing:0.03em;color:{{ rating_color.get(d.css) }};border:1px solid {{ rating_color.get(d.css) }};">
+                {{ d.rating }}
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- FILTRO EMPRESA (solo staff) -->
+    {% if session.get('rol') in ('admin','tecnico') %}
+    <div class="dash-block">
+      <form method="GET" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+        <input type="hidden" name="tipo" value="{{ tipo }}" />
+        <div class="form-group" style="margin-bottom:0;min-width:200px;">
+          <label>Filter by Company</label>
+          <select name="empresa" onchange="this.form.submit()"
+                  style="width:100%;padding:10px 14px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.88rem;outline:none;">
+            <option value="">All companies</option>
+            {% for e in empresas_disponibles %}
+            <option value="{{ e }}" {% if empresa_filter == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- TABLA REPORTES -->
+    <div class="dash-block">
+      <div class="glass-card messages-table">
+        <div class="table-header" style="grid-template-columns:0.5fr 1.2fr 1.2fr 1fr 1fr 1fr {% if session.get('rol') in ('admin','tecnico') %}0.6fr{% endif %};">
+          <span>ID</span>
+          <span>Customer</span>
+          <span>{% if tipo == 'mark' %}Campaign{% else %}Contact Channel{% endif %}</span>
+          <span>{% if tipo == 'mark' %}Objective{% elif tipo == 'finance' %}Transaction Type{% else %}Case Type{% endif %}</span>
+          <span>Status</span>
+          <span>Company</span>
+          {% if session.get('rol') in ('admin','tecnico') %}<span>Action</span>{% endif %}
+        </div>
+        {% if reportes %}
+          {% for r in reportes %}
+          <div class="table-row" style="grid-template-columns:0.5fr 1.2fr 1.2fr 1fr 1fr 1fr {% if session.get('rol') in ('admin','tecnico') %}0.6fr{% endif %};">
+            <span class="tr-date">#{{ r.id }}</span>
+            <span class="tr-name">{{ r.customer_name or r.campaign_name or '—' }}</span>
+            <span>{{ r.contact_channel or r.channel or '—' }}</span>
+            <span style="font-size:0.78rem;">{{ r.issue_type or r.objective or r.transaction_type or '—' }}</span>
+            <span>
+              {% set st = r.resolution_status or '' %}
+              {% if 'resolved' in st.lower() or 'processed' in st.lower() %}
+                <span style="color:var(--green-glow);font-size:0.78rem;font-weight:600;">{{ st }}</span>
+              {% elif 'escalated' in st.lower() %}
+                <span style="color:#f87171;font-size:0.78rem;font-weight:600;">{{ st }}</span>
+              {% else %}
+                <span style="color:#facc15;font-size:0.78rem;font-weight:600;">{{ st }}</span>
+              {% endif %}
+            </span>
+            <span style="color:var(--silver);font-size:0.82rem;">{{ r.empresa }}</span>
+            {% if session.get('rol') in ('admin','tecnico') %}
+            <span>
+              <form action="{{ url_for('transactions.eliminar', id=r.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this report?');">
+                <button type="submit" style="padding:5px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);color:#f87171;font-size:0.75rem;cursor:pointer;">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </form>
+            </span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">
+            <p>There are no reports of type "{{ tipos[tipo] }}" yet.</p>
+            <a href="{{ url_for('transactions.nuevo', tipo=tipo) }}">Create the first one</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}New Ticket — Orchard Core Ops{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar glass-card">
+    <div class="sidebar-logo">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+      <span class="logo-text">Orchard<span class="logo-accent"> Core Ops</span></span>
+    </div>
+        <nav class="sidebar-nav">
+      <a href="{{ url_for('dashboard.index') }}" class="sb-link ">
+        <i class="fa-solid fa-gauge-high" style="margin-right:8px;"></i>Dashboard
+      </a>
+      <a href="{{ url_for('tickets.list_tickets') }}" class="sb-link ">
+        <i class="fa-solid fa-ticket" style="margin-right:8px;"></i>Tickets
+      </a>
+      <a href="{{ url_for('transactions.index') }}" class="sb-link"><i class="fa-solid fa-building-columns" style="margin-right:8px;"></i>Tickets by Company</a>
+      <a href="{{ url_for('tickets.create_ticket') }}" class="sb-link active">
+        <i class="fa-solid fa-plus" style="margin-right:8px;"></i>New Ticket
+      </a>
+      {% if session.get('rol') in ('admin', 'tecnico') %}
+      <a href="{{ url_for('reports.index') }}" class="sb-link ">
+        <i class="fa-solid fa-chart-line" style="margin-right:8px;"></i>Reports
+      </a>
+      {% endif %}
+      {% if session.get('rol') == 'admin' %}
+      <a href="{{ url_for('auth.register') }}" class="sb-link">
+        <i class="fa-solid fa-user-plus" style="margin-right:8px;"></i>Create Account
+      </a>
+      {% endif %}
+    </nav>
+    <div class="sidebar-user">
+      <div class="su-avatar">{{ session.get('username', 'U')[0].upper() }}</div>
+      <div class="su-info">
+        <span class="su-name">{{ session.get('username') }}</span>
+        <span class="su-role">{{ session.get('rol','user')|role_label }}</span>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="su-logout" title="Log out">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="dashboard-main">
+    <div class="dash-topbar">
+      <div>
+        <h1 class="dash-title">New Ticket</h1>
+        <p class="dash-sub">Describe your problem or request in as much detail as possible.</p>
+      </div>
+    </div>
+
+    <div style="max-width:680px;">
+      <div class="glass-card" style="padding:40px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border);">
+          <span style="font-size:2rem;"></span>
+          <div>
+            <h2 style="font-family:var(--font-head);font-size:1.2rem;font-weight:700;">Open Support Request</h2>
+            <p style="color:var(--silver-dim);font-size:0.82rem;">The team will respond within 24 hours</p>
+          </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('tickets.create_ticket') }}">
+          <div class="form-group">
+            <label>Issue Title *</label>
+            <input type="text" name="titulo" placeholder="E.g.: Error logging in to the platform" required />
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label>Category *</label>
+              <select name="categoria" required style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;transition:var(--transition);">
+                <option value="Técnico">Technical</option>
+                <option value="Facturación">Billing</option>
+                <option value="Cuenta">Account</option>
+                <option value="Otro">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Priority *</label>
+              <select name="prioridad" required style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;transition:var(--transition);">
+                <option value="baja">🟢 Low</option>
+                <option value="media" selected>🟡 Medium</option>
+                <option value="alta">🔴 High</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Company *</label>
+            <select name="empresa" required style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;transition:var(--transition);">
+              <option value="SPARK">🏢 SPARK</option>
+              <option value="BISSNISS">🏢 BISSNISS</option>
+              <option value="HALO MK.">🏢 HALO MK.</option>
+              <option value="CUSTOMER HUB">🏢 CUSTOMER HUB</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Was this call transferred?</label>
+            <select name="call_status" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;transition:var(--transition);">
+              <option value="Finalizada">Completed</option>
+              <option value="Transferida">Transferred</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Detailed Description *</label>
+            <textarea name="descripcion" rows="6"
+              placeholder="Explain the problem in as much detail as possible: what did you do? what did you expect to happen? what happened instead?..."
+              required></textarea>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <button type="submit" class="btn-primary" style="flex:1;">
+              <i class="fa-solid fa-paper-plane"></i> Submit Ticket
+            </button>
+            <a href="{{ url_for('tickets.list_tickets') }}" class="btn-ghost" style="flex:1;text-align:center;padding:13px 20px;">
+              Cancelar
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

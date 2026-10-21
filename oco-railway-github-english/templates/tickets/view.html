@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% block title %}Ticket #{{ ticket.id }} — Orchard Core Ops{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar glass-card">
+    <div class="sidebar-logo">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+      <span class="logo-text">Help<span class="logo-accent">Desk</span></span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('dashboard.index') }}" class="sb-link">
+        <i class="fa-solid fa-gauge-high" style="margin-right:8px;"></i>Dashboard
+      </a>
+      <a href="{{ url_for('tickets.list_tickets') }}" class="sb-link active">
+        <i class="fa-solid fa-ticket" style="margin-right:8px;"></i>My Tickets
+      </a>
+      <a href="{{ url_for('tickets.create_ticket') }}" class="sb-link">
+        <i class="fa-solid fa-plus" style="margin-right:8px;"></i>New Ticket
+      </a>
+      {% if session.get('rol') == 'admin' %}
+      <a href="{{ url_for('reports.index') }}" class="sb-link">
+        <i class="fa-solid fa-chart-line" style="margin-right:8px;"></i>Reports
+      </a>
+      {% endif %}
+    </nav>
+    <div class="sidebar-user">
+      <div class="su-avatar">{{ session.get('username', 'U')[0].upper() }}</div>
+      <div class="su-info">
+        <span class="su-name">{{ session.get('username') }}</span>
+        <span class="su-role">{{ session.get('rol','user')|role_label }}</span>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="su-logout" title="Log out">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="dashboard-main">
+    <div class="dash-topbar">
+      <div>
+        <h1 class="dash-title">Ticket #{{ ticket.id }}</h1>
+        <p class="dash-sub">{{ ticket.titulo }}</p>
+      </div>
+      <a href="{{ url_for('tickets.list_tickets') }}" class="btn-ghost">
+        <i class="fa-solid fa-arrow-left"></i> Back
+      </a>
+    </div>
+
+    <div style="display:grid;grid-template-columns:320px 1fr;gap:24px;align-items:start;">
+
+      <!-- DETALLES -->
+      <div class="glass-card" style="padding:28px;">
+        <h3 style="font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+          Ticket Details
+        </h3>
+
+        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px;">
+          <div>
+            <span style="font-size:0.72rem;color:var(--silver-dim);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-head);font-weight:600;">Category</span>
+            <p style="color:var(--white);font-size:0.9rem;margin-top:3px;">{{ ticket.categoria|categoria_label }}</p>
+          </div>
+          <div>
+            <span style="font-size:0.72rem;color:var(--silver-dim);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-head);font-weight:600;">Priority</span>
+            <p style="margin-top:4px;">
+              {% if ticket.prioridad == 'alta' %}
+                <span style="padding:3px 12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:20px;font-size:0.78rem;font-family:var(--font-head);font-weight:600;color:#f87171;">🔴 High</span>
+              {% elif ticket.prioridad == 'media' %}
+                <span style="padding:3px 12px;background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);border-radius:20px;font-size:0.78rem;font-family:var(--font-head);font-weight:600;color:#facc15;">🟡 Medium</span>
+              {% else %}
+                <span style="padding:3px 12px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:20px;font-size:0.78rem;font-family:var(--font-head);font-weight:600;color:var(--green-glow);">🟢 Low</span>
+              {% endif %}
+            </p>
+          </div>
+          <div>
+            <span style="font-size:0.72rem;color:var(--silver-dim);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-head);font-weight:600;">Status</span>
+            <p style="margin-top:4px;">
+              {% if ticket.estado == 'abierto' %}
+                <span style="padding:3px 12px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:20px;font-size:0.78rem;font-family:var(--font-head);font-weight:600;color:var(--green-glow);">Open</span>
+              {% elif ticket.estado == 'en_proceso' %}
+                <span style="padding:3px 12px;background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.3);border-radius:20px;font-size:0.78rem;font-family:var(--font-head);font-weight:600;color:#facc15;">In Progress</span>
+              {% else %}
+                <span style="padding:3px 12px;background:rgba(107,114,128,0.15);border:1px solid rgba(107,114,128,0.3);border-radius:20px;font-size:0.78rem;font-family:var(--font-head);font-weight:600;color:var(--silver-dim);">Closed</span>
+              {% endif %}
+            </p>
+          </div>
+          <div>
+            <span style="font-size:0.72rem;color:var(--silver-dim);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-head);font-weight:600;">Created</span>
+            <p style="color:var(--silver);font-size:0.82rem;margin-top:3px;">{{ ticket.created_at.strftime('%d %b, %Y %H:%M') }}</p>
+          </div>
+          {% if ticket.call_status %}
+          <div>
+            <span style="font-size:0.72rem;color:var(--silver-dim);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-head);font-weight:600;">Call</span>
+            <p style="margin-top:4px;">
+              {% if ticket.call_status == 'Transferida' %}
+                <span style="padding:3px 12px;background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.3);border-radius:20px;font-size:0.78rem;font-family:var(--font-head);font-weight:600;color:#facc15;">Transferred</span>
+              {% else %}
+                <span style="padding:3px 12px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:20px;font-size:0.78rem;font-family:var(--font-head);font-weight:600;color:var(--green-glow);">Completed</span>
+              {% endif %}
+            </p>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if session.get('rol') == 'admin' %}
+        <div style="padding-top:16px;border-top:1px solid var(--border);">
+          <h4 style="font-family:var(--font-head);font-size:0.82rem;font-weight:700;color:var(--silver-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Change Status</h4>
+          <form method="POST" action="{{ url_for('tickets.view_ticket', id=ticket.id) }}" style="display:flex;gap:8px;">
+            <input type="hidden" name="action" value="cambiar_estado" />
+            <select name="estado" style="flex:1;padding:9px 12px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.85rem;outline:none;">
+              <option value="abierto" {% if ticket.estado == 'abierto' %}selected{% endif %}>Open</option>
+              <option value="en_proceso" {% if ticket.estado == 'en_proceso' %}selected{% endif %}>In Progress</option>
+              <option value="cerrado" {% if ticket.estado == 'cerrado' %}selected{% endif %}>Closed</option>
+            </select>
+            <button type="submit" class="btn-primary" style="padding:9px 16px;font-size:0.82rem;">Change</button>
+          </form>
+        </div>
+        {% endif %}
+
+        <div style="margin-top:20px;padding:16px;background:var(--white-dim2);border-radius:var(--radius-sm);border:1px solid var(--border);">
+          <h4 style="font-family:var(--font-head);font-size:0.82rem;font-weight:700;margin-bottom:8px;">Description</h4>
+          <p style="color:var(--silver);font-size:0.85rem;line-height:1.7;">{{ ticket.descripcion }}</p>
+        </div>
+      </div>
+
+      <!-- CONVERSACIÓN -->
+      <div class="glass-card" style="display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+          <h3 style="font-family:var(--font-head);font-size:1rem;font-weight:700;">
+            <i class="fa-solid fa-comments" style="color:var(--green-glow);margin-right:8px;"></i>Conversation
+          </h3>
+        </div>
+
+        <!-- MESSAGES -->
+        <div id="chatBox" style="padding:20px;height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
+          {% if ticket.responses|length == 0 %}
+            <div style="text-align:center;color:var(--silver-dim);padding:40px 20px;">
+              <div style="font-size:2.5rem;margin-bottom:12px;">💬</div>
+              <p style="font-size:0.9rem;">No replies yet. Be the first to comment.</p>
+            </div>
+          {% endif %}
+          {% for resp in ticket.responses %}
+            <div style="display:flex;flex-direction:column;align-items:{% if resp.user.rol == 'admin' %}flex-end{% else %}flex-start{% endif %};">
+              <div style="max-width:80%;padding:14px 18px;border-radius:var(--radius);
+                {% if resp.user.rol == 'admin' %}
+                  background:linear-gradient(135deg,var(--green),var(--green-mid));color:var(--white);
+                {% else %}
+                  background:var(--white-dim2);border:1px solid var(--border);color:var(--silver);
+                {% endif %}">
+                <span style="display:block;font-family:var(--font-head);font-weight:700;font-size:0.78rem;margin-bottom:6px;
+                  {% if resp.user.rol == 'admin' %}color:rgba(255,255,255,0.85){% else %}color:var(--green-glow){% endif %}">
+                  {{ resp.user.username }}
+                  {% if resp.user.rol == 'admin' %}<span style="font-size:0.65rem;margin-left:4px;opacity:0.75;">(Support)</span>{% endif %}
+                </span>
+                <p style="font-size:0.88rem;line-height:1.6;margin:0;">{{ resp.contenido }}</p>
+                <span style="display:block;font-size:0.68rem;margin-top:8px;opacity:0.6;text-align:right;">
+                  {{ resp.created_at.strftime('%d %b %H:%M') }}
+                </span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- REPLY FORM -->
+        <div style="padding:16px 20px;border-top:1px solid var(--border);">
+          <form method="POST" action="{{ url_for('tickets.view_ticket', id=ticket.id) }}"
+                style="display:flex;gap:10px;align-items:flex-end;">
+            <input type="hidden" name="action" value="responder" />
+            <div style="flex:1;">
+              <textarea name="contenido" rows="2"
+                placeholder="Write your reply or comment..."
+                style="width:100%;padding:12px 14px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.88rem;outline:none;resize:none;transition:var(--transition);"
+                onfocus="this.style.borderColor='var(--green-glow)'"
+                onblur="this.style.borderColor='var(--border)'"></textarea>
+            </div>
+            <button type="submit" class="btn-primary" style="padding:12px 20px;white-space:nowrap;">
+              <i class="fa-solid fa-paper-plane"></i> Send
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+  // Auto-scroll to bottom of chat
+  const chatBox = document.getElementById('chatBox');
+  if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+</script>
+{% endblock %}

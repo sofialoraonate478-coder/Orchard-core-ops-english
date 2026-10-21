@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Orchard Core Ops — Technical Support{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-container">
+    <a href="{{ url_for('dashboard.index') }}" class="nav-logo">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Orchard Core Ops" class="nav-logo-img" />
+      <span class="logo-text">Orchard <span class="logo-accent">Core Ops</span></span>
+    </a>
+    <div class="nav-links" id="navLinks">
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+          <i class="fa-solid fa-gauge-high"></i> Dashboard
+        </a>
+        <a href="{{ url_for('tickets.list_tickets') }}" class="nav-link {% if 'tickets' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-ticket"></i> Tickets
+        </a>
+        <a href="{{ url_for('transactions.index') }}" class="nav-link {% if 'transactions' in request.endpoint %}active{% endif %}">
+          <i class="fa-solid fa-building-columns"></i> By Company
+        </a>
+        {% if session.get('rol') in ('admin', 'tecnico') %}
+        <a href="{{ url_for('reports.index') }}" class="nav-link {% if request.endpoint == 'reports.index' %}active{% endif %}">
+          <i class="fa-solid fa-chart-line"></i> Reports
+        </a>
+        {% endif %}
+        <span class="nav-link" style="color:var(--silver-dim); cursor:default;">
+          Hello, <strong style="color:var(--white)">{{ session.get('username') }}</strong>
+          {% if session.get('rol') == 'admin' %}<span style="color:var(--green-glow);font-size:0.72rem;margin-left:4px;">(Admin)</span>{% endif %}
+        </span>
+        <a href="{{ url_for('auth.logout') }}" class="nav-btn nav-btn-ghost">
+          <i class="fa-solid fa-right-from-bracket"></i> Log out
+        </a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="nav-btn nav-btn-ghost">Log In</a>
+      {% endif %}
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- FLASH MESSAGES -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div style="position:fixed;top:calc(var(--nav-h) + 12px);right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:380px;">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}" style="display:flex;align-items:center;gap:10px;justify-content:space-between;">
+          <span>
+            {% if category == 'success' %}<i class="fa-solid fa-circle-check"></i>{% else %}<i class="fa-solid fa-triangle-exclamation"></i>{% endif %}
+            {{ message }}
+          </span>
+          <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:inherit;font-size:1rem;padding:0;margin-left:8px;">✕</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- MAIN -->
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <div class="footer-logo-wrap">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Orchard Core Ops" class="footer-logo-img" />
+        <span class="logo-text">Orchard <span class="logo-accent">Core Ops</span></span>
+      </div>
+      <p>Technical support system for efficient ticket and incident management.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Platform</h4>
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('dashboard.index') }}">Dashboard</a>
+        <a href="{{ url_for('tickets.list_tickets') }}">My Tickets</a>
+        <a href="{{ url_for('tickets.create_ticket') }}">New Ticket</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}">Log In</a>
+      {% endif %}
+    </div>
+    <div class="footer-links">
+      <h4>Support</h4>
+      <a href="#">Documentation</a>
+      <a href="#">System Status</a>
+      <a href="#">Contact</a>
+    </div>
+    <div class="footer-contact">
+      <h4>Contact</h4>
+      <p>soporte@helpdesk.com</p>
+      <p>Available 24 / 7 / 365</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Orchard Core Ops. All rights reserved.</span>
+    <span class="footer-badge">Support Excellence</span>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

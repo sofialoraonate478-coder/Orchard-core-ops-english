@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% block title %}New Report — Orchard Core Ops{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+  <aside class="sidebar glass-card">
+    <div class="sidebar-logo">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="width:32px;height:32px;border-radius:50%;object-fit:cover;" />
+      <span class="logo-text">Orchard<span class="logo-accent"> Core Ops</span></span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('dashboard.index') }}" class="sb-link"><i class="fa-solid fa-gauge-high" style="margin-right:8px;"></i>Dashboard</a>
+      <a href="{{ url_for('tickets.list_tickets') }}" class="sb-link"><i class="fa-solid fa-ticket" style="margin-right:8px;"></i>Tickets</a>
+      <a href="{{ url_for('tickets.create_ticket') }}" class="sb-link"><i class="fa-solid fa-plus" style="margin-right:8px;"></i>New Ticket</a>
+      <a href="{{ url_for('transactions.index') }}" class="sb-link active"><i class="fa-solid fa-building-columns" style="margin-right:8px;"></i>Tickets by Company</a>
+      {% if session.get('rol') in ('admin', 'tecnico') %}
+      <a href="{{ url_for('reports.index') }}" class="sb-link"><i class="fa-solid fa-chart-line" style="margin-right:8px;"></i>Reports</a>
+      {% endif %}
+      {% if session.get('rol') == 'admin' %}
+      <a href="{{ url_for('auth.register') }}" class="sb-link"><i class="fa-solid fa-user-plus" style="margin-right:8px;"></i>Create Account</a>
+      {% endif %}
+    </nav>
+    <div class="sidebar-user">
+      <div class="su-avatar">{{ session.get('username','U')[0].upper() }}</div>
+      <div class="su-info">
+        <span class="su-name">{{ session.get('username') }}</span>
+        <span class="su-role">{{ session.get('rol','')|role_label }}</span>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="su-logout"><i class="fa-solid fa-right-from-bracket"></i></a>
+    </div>
+  </aside>
+
+  <div class="dashboard-main">
+    <div class="dash-topbar">
+      <div>
+        <h1 class="dash-title">New Transaction Report</h1>
+        <p class="dash-sub">Fill out the form according to the selected transaction type.</p>
+      </div>
+    </div>
+
+    <div style="max-width:720px;">
+      <div class="glass-card" style="padding:36px;">
+
+        <!-- SELECTOR TIPO -->
+        <div class="form-group">
+          <label>Transaction Type</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;" id="tipo-btns">
+            {% for key, label in tipos.items() %}
+            <button type="button" onclick="setTipo('{{ key }}')"
+                    id="btn-{{ key }}"
+                    class="btn-{% if tipo == key %}primary{% else %}ghost{% endif %}"
+                    style="padding:8px 16px;font-size:0.82rem;">
+              {{ label }}
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('transactions.nuevo') }}" id="tx-form">
+          <input type="hidden" name="tipo" id="tipo-input" value="{{ tipo }}" />
+
+          <!-- EMPRESA -->
+          {% if session.get('rol') in ('admin','tecnico') %}
+          <div class="form-group">
+            <label>Company</label>
+            <select name="empresa" id="empresa-select" onchange="toggleOfferSuccess()" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+              {% for e in empresas_disponibles %}
+              <option value="{{ e }}">{{ e }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+
+          <!-- ¿LA LLAMADA FUE TRANSFERIDA? (todos los formularios) -->
+          <div class="form-group">
+            <label>Was this call transferred?</label>
+            <select name="call_status" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+              <option value="Finalizada">Completed</option>
+              <option value="Transferida">Transferred</option>
+            </select>
+          </div>
+
+          <!-- DATA ANALYTICS: AHT (interactivo con los KPIs) -->
+          <div class="form-group">
+            <label>AHT — Handling time (min)</label>
+            <input type="number" name="handle_time" min="0" placeholder="E.g.: 4" />
+          </div>
+
+          <!-- CONR — solo HALO MK. y CUSTOMER HUB -->
+          <div class="form-group" id="offer-success-group" style="display:none;">
+            <label>Was the product/service offer successful? (CONR)</label>
+            <select name="offer_success" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+              <option value="">— Not applicable —</option>
+              <option value="Si">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <!-- CAMPOS COMUNES (Cus.S + Tech.S + Finance) -->
+          <div id="fields-common">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div class="form-group">
+                <label>Customer Name</label>
+                <input type="text" name="customer_name" placeholder="Ana Torres" />
+              </div>
+              <div class="form-group">
+                <label>Account ID</label>
+                <input type="text" name="account_id" placeholder="12345" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Contact Channel</label>
+              <select name="contact_channel" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+                <option>Phone</option><option>Email</option><option>Chat</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label id="issue-label">Issue Type</label>
+              <select name="issue_type" id="issue-select" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Resolution Status</label>
+              <select name="resolution_status" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+                <option>Resolved</option><option>Escalated</option><option>Pending</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Agent Name</label>
+              <input type="text" name="agent_name" placeholder="Juan Pérez" />
+            </div>
+            <div class="form-group">
+              <label>KPI Check</label>
+              <input type="text" name="kpi_check" id="kpi-check-field" placeholder="CSAT, AHT, FCR" />
+            </div>
+          </div>
+
+          <!-- CAMPOS EXTRA FINANCE -->
+          <div id="fields-finance" style="display:none;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div class="form-group">
+                <label>Transaction Type</label>
+                <select name="transaction_type" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+                  <option>Payroll</option><option>Billing</option><option>Expense</option><option>Claim</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Currency</label>
+                <select name="currency" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+                  <option>COP</option><option>USD</option><option>EUR</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Amount</label>
+              <input type="text" name="amount" placeholder="$1,500,000" />
+            </div>
+            <div class="form-group">
+              <label>Compliance Requirement</label>
+              <select name="compliance_req" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+                <option>4x1000</option><option>VAT</option><option>Local Tax</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- CAMPOS EXTRA MARKETING -->
+          <div id="fields-mark" style="display:none;">
+            <div class="form-group">
+              <label>Campaign Name</label>
+              <input type="text" name="campaign_name" placeholder="Summer Promo" />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div class="form-group">
+                <label>Audience Segment</label>
+                <input type="text" name="audience_segment" placeholder="Students 18-25" />
+              </div>
+              <div class="form-group">
+                <label>Channel</label>
+                <select name="channel" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+                  <option>Instagram</option><option>Email</option><option>Ads</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Objective</label>
+              <select name="objective" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+                <option>Engagement</option><option>Lead Generation</option><option>Sales</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Responsible Agent</label>
+              <input type="text" name="agent_name" placeholder="Marketing Specialist" />
+            </div>
+            <div class="form-group">
+              <label>KPI Check</label>
+              <input type="text" name="kpi_check" placeholder="CTR, Conversion Rate, Engagement Rate" />
+            </div>
+          </div>
+
+          <!-- CASE DESCRIPTION siempre visible -->
+          <div class="form-group">
+            <label>Case Description</label>
+            <textarea name="case_description" rows="4" placeholder="Detailed notes, resolution steps, observations..."></textarea>
+          </div>
+
+          <!-- ENCUESTA DE SATISFACCIÓN — de aquí se calculan CSAT y NPS -->
+          <div style="margin-top:8px;padding-top:24px;border-top:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              <i class="fa-solid fa-star" style="color:var(--green-glow);"></i>
+              <h3 style="font-family:var(--font-head);font-size:1rem;font-weight:700;">Satisfaction Survey</h3>
+            </div>
+            <p style="color:var(--silver-dim);font-size:0.78rem;margin-bottom:16px;">
+              Record the customer's response at case closure. CSAT and NPS KPIs are calculated automatically from these responses.
+            </p>
+
+            <div class="form-group">
+              <label>How satisfied was the customer with the service received?</label>
+              <select name="csat_response" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+                <option value="">— Did not answer the survey —</option>
+                <option value="1">1 — Very dissatisfied</option>
+                <option value="2">2 — Dissatisfied</option>
+                <option value="3">3 — Neutral</option>
+                <option value="4">4 — Satisfied</option>
+                <option value="5">5 — Very satisfied</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>On a scale of 0 to 10, how likely is the customer to recommend our service? (NPS)</label>
+              <select name="nps_response" style="width:100%;padding:13px 16px;background:var(--white-dim2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--white);font-size:0.9rem;outline:none;">
+                <option value="">— Did not answer the survey —</option>
+                {% for i in range(0, 11) %}
+                <option value="{{ i }}">{{ i }}{% if i == 0 %} — Not at all likely{% elif i == 10 %} — Very likely{% endif %}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <button type="submit" class="btn-primary" style="flex:1;">
+              <i class="fa-solid fa-save"></i> Save Report
+            </button>
+            <a href="{{ url_for('transactions.index', tipo=tipo) }}" class="btn-ghost" style="flex:1;text-align:center;padding:13px 20px;">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+const issueOptions = {
+  cus_s:   ['Billing','Returns','General Inquiry'],
+  tech_s:  ['Password Reset','Connectivity','Software Bug'],
+  mark:    ['Campaign Issue','Content Review','Budget Adjustment'],
+  finance: ['Payroll Discrepancy','Invoice Error','Expense Claim','Compliance Issue'],
+};
+const kpiDefaults = {
+  cus_s:   'CSAT, AHT, FCR',
+  tech_s:  'FCR, AHT, CSAT, SLA Compliance',
+  mark:    'CTR, Conversion Rate, Engagement Rate',
+  finance: 'Accuracy Rate, TAT, SLA Compliance',
+};
+
+// Companies that have the CONR KPI (product/service offer)
+const empresasConConr = {{ empresas_con_conr|tojson }};
+const empresaSesion = {{ session.get('empresa','')|tojson }};
+
+function toggleOfferSuccess() {
+  const sel = document.getElementById('empresa-select');
+  const empresaActual = sel ? sel.value : empresaSesion;
+  const grupo = document.getElementById('offer-success-group');
+  if (!grupo) return;
+  grupo.style.display = empresasConConr.includes(empresaActual) ? 'block' : 'none';
+}
+
+function setTipo(key) {
+  document.getElementById('tipo-input').value = key;
+
+  // Botones
+  ['cus_s','tech_s','mark','finance'].forEach(k => {
+    const btn = document.getElementById('btn-'+k);
+    btn.className = k === key ? 'btn-primary' : 'btn-ghost';
+    btn.style.cssText = 'padding:8px 16px;font-size:0.82rem;';
+  });
+
+  // Mostrar/ocultar bloques
+  const isMarketing = key === 'mark';
+  const isFinance   = key === 'finance';
+  document.getElementById('fields-common').style.display = isMarketing ? 'none' : 'block';
+  document.getElementById('fields-finance').style.display = isFinance  ? 'block' : 'none';
+  document.getElementById('fields-mark').style.display   = isMarketing ? 'block' : 'none';
+
+  // Issue options
+  const sel = document.getElementById('issue-select');
+  if (sel) {
+    sel.innerHTML = '';
+    (issueOptions[key] || []).forEach(opt => {
+      const o = document.createElement('option'); o.value = opt; o.text = opt; sel.add(o);
+    });
+  }
+
+  // KPI default
+  const kpiField = document.getElementById('kpi-check-field');
+  if (kpiField) kpiField.placeholder = kpiDefaults[key] || '';
+}
+
+// Init
+setTipo('{{ tipo }}');
+toggleOfferSuccess();
+</script>
+{% endblock %}
